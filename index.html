@@ -36,10 +36,18 @@
     font-size: 17px; font-weight: 600; cursor: pointer;
     background: #25D366; color: #062b12;
   }
+  button.sec { background:#2a3942; color:#e9edef; margin-top:10px; }
   button:disabled { opacity: .6; cursor: default; }
   .pin { font-size: 48px; margin-bottom: 12px; }
   .status { margin-top: 18px; font-size: 14px; min-height: 20px; }
   .err { color: #f6a5a5; }
+  .banner {
+    display:none; background:#3a2a00; color:#ffd479; border:1px solid #5c4400;
+    border-radius:12px; padding:16px; margin:0 0 20px; text-align:left; font-size:14px; line-height:1.55;
+  }
+  .banner b { color:#ffe6a3; }
+  .banner ol { margin:10px 0 0; padding-left:20px; }
+  .banner li { margin:4px 0; }
 </style>
 </head>
 <body>
@@ -47,6 +55,13 @@
     <div class="pin">📍</div>
     <h1>Share your delivery location</h1>
     <p>Tap the button below. Your phone will ask permission, then open WhatsApp with your location ready to send to our team.</p>
+
+    <div class="banner" id="banner">
+      <b>⚠️ Please open this in your browser first.</b><br>
+      Location doesn't work inside WhatsApp. To fix it:
+      <ol id="bannerSteps"></ol>
+      <button class="sec" id="copyBtn" style="margin-top:14px;">Copy link instead</button>
+    </div>
 
     <div class="who" id="whoBox" style="display:none;"></div>
 
@@ -66,7 +81,6 @@
   const WHATSAPP_NUMBER = "26774703132";   // team number, digits only
   // ======================
 
-  // Read customer + order from the link (dispatch pre-fills these)
   const params = new URLSearchParams(window.location.search);
   let custName = (params.get("name") || "").trim();
   let orderRef = (params.get("ref") || "").trim();
@@ -75,18 +89,49 @@
   const manual = document.getElementById("manualFields");
   const btn = document.getElementById("go");
   const status = document.getElementById("status");
+  const banner = document.getElementById("banner");
+
+  // Detect in-app browsers (WhatsApp, Facebook, Instagram, etc.) that block GPS
+  const ua = navigator.userAgent || "";
+  const isAndroid = /Android/i.test(ua);
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const inApp = /(WhatsApp|FBAN|FBAV|FB_IAB|Instagram|Line|Twitter|; wv\))/i.test(ua);
+
+  if (inApp) {
+    const steps = document.getElementById("bannerSteps");
+    if (isAndroid) {
+      steps.innerHTML =
+        "<li>Tap the <b>⋮</b> menu (top-right corner).</li>" +
+        "<li>Choose <b>Open in browser</b> (or Open in Chrome).</li>" +
+        "<li>Then tap <b>Share my location</b>.</li>";
+    } else if (isIOS) {
+      steps.innerHTML =
+        "<li>Tap the <b>Share</b> / <b>⋯</b> icon (top or bottom).</li>" +
+        "<li>Choose <b>Open in Safari</b>.</li>" +
+        "<li>Then tap <b>Share my location</b>.</li>";
+    } else {
+      steps.innerHTML = "<li>Open this link in your normal browser, then tap <b>Share my location</b>.</li>";
+    }
+    banner.style.display = "block";
+  }
 
   if (custName || orderRef) {
-    // Details came from the link — show them for confirmation
     let html = "";
     if (custName) html += '<div class="lbl">Customer</div><div class="val">' + esc(custName) + '</div>';
     if (orderRef) html += '<div class="lbl" style="margin-top:10px;">Order / reference</div><div class="val">' + esc(orderRef) + '</div>';
     whoBox.innerHTML = html;
     whoBox.style.display = "block";
   } else {
-    // No details in the link — let the customer type them (fallback)
     manual.style.display = "block";
   }
+
+  document.getElementById("copyBtn").addEventListener("click", function () {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(
+      () => { this.textContent = "Link copied ✓ — paste in Chrome/Safari"; },
+      () => { this.textContent = url; }
+    );
+  });
 
   btn.addEventListener("click", function () {
     if (manual.style.display === "block") {
@@ -116,11 +161,22 @@
         window.location.href = wa;
       },
       function (err) {
-        let m = "Couldn't get your location.";
-        if (err.code === 1) m = "Location permission was denied. Please allow location and try again.";
-        else if (err.code === 2) m = "Location unavailable. Check that GPS is on.";
-        else if (err.code === 3) m = "Timed out. Please try again.";
-        showError(m);
+        if (err.code === 1) {
+          // Permission denied — almost always the in-app browser
+          banner.style.display = "block";
+          if (!document.getElementById("bannerSteps").innerHTML) {
+            document.getElementById("bannerSteps").innerHTML =
+              "<li>Open this link in <b>Chrome</b> or <b>Safari</b> (not inside WhatsApp).</li>" +
+              "<li>Allow location when asked, then tap <b>Share my location</b>.</li>";
+          }
+          showError("Location was blocked. Please open this link in your browser (see steps above), then try again.");
+        } else if (err.code === 2) {
+          showError("Location unavailable. Turn on GPS / Location on your phone and try again.");
+        } else if (err.code === 3) {
+          showError("Timed out. Please try again.");
+        } else {
+          showError("Couldn't get your location. Please try again.");
+        }
         btn.disabled = false;
         btn.textContent = "Try again";
       },
