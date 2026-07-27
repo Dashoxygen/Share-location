@@ -74,6 +74,13 @@
 
     <button id="go">Share my location</button>
     <div class="status" id="status"></div>
+
+    <div id="fallback" style="display:none; margin-top:22px; border-top:1px solid #2a3942; padding-top:18px;">
+      <p style="margin-bottom:14px;"><b>No problem — there's an easier way:</b><br>
+      Tap the button below to open our WhatsApp chat, then tap the
+      <b>📎 attach</b> (or <b>+</b>) icon → <b>Location</b> → <b>Send your current location</b>.</p>
+      <button id="waFallback">Open WhatsApp chat</button>
+    </div>
   </div>
 
 <script>
@@ -133,54 +140,74 @@
     );
   });
 
+  const fallback = document.getElementById("fallback");
+
+  document.getElementById("waFallback").addEventListener("click", function () {
+    let msg = "📍 Delivery location";
+    if (custName) msg += "\nCustomer: " + custName;
+    if (orderRef) msg += "\nOrder: " + orderRef;
+    msg += "\n(I will attach my location in the next message)";
+    window.location.href = "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(msg);
+  });
+
+  function sendLocation(pos) {
+    const lat = pos.coords.latitude.toFixed(6);
+    const lng = pos.coords.longitude.toFixed(6);
+    const maps = "https://maps.google.com/?q=" + lat + "," + lng;
+
+    let msg = "📍 Delivery location";
+    if (custName) msg += "\nCustomer: " + custName;
+    if (orderRef) msg += "\nOrder: " + orderRef;
+    msg += "\n" + maps;
+
+    status.textContent = "Opening WhatsApp…";
+    window.location.href = "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(msg);
+  }
+
+  function handleFail(err) {
+    if (err && err.code === 1) {
+      banner.style.display = "block";
+      if (!document.getElementById("bannerSteps").innerHTML) {
+        document.getElementById("bannerSteps").innerHTML =
+          "<li>Open this link in <b>Chrome</b> or <b>Safari</b> (not inside WhatsApp).</li>" +
+          "<li>Allow location when asked, then tap <b>Share my location</b>.</li>";
+      }
+      showError("Location was blocked on this phone.");
+    } else if (err && err.code === 2) {
+      showError("Location unavailable. Check that GPS / Location is on.");
+    } else {
+      showError("Couldn't get your location.");
+    }
+    // Always offer the works-everywhere fallback
+    fallback.style.display = "block";
+    btn.disabled = false;
+    btn.textContent = "Try again";
+  }
+
   btn.addEventListener("click", function () {
     if (manual.style.display === "block") {
       custName = document.getElementById("mName").value.trim();
       orderRef = document.getElementById("mRef").value.trim();
     }
     if (!("geolocation" in navigator)) {
-      showError("This phone/browser doesn't support location sharing.");
+      handleFail(null);
       return;
     }
     btn.disabled = true;
     status.textContent = "Getting your location…";
 
+    // Attempt 1: quick, low-accuracy (Safari-friendly). Attempt 2: high-accuracy GPS.
     navigator.geolocation.getCurrentPosition(
-      function (pos) {
-        const lat = pos.coords.latitude.toFixed(6);
-        const lng = pos.coords.longitude.toFixed(6);
-        const maps = "https://maps.google.com/?q=" + lat + "," + lng;
-
-        let msg = "📍 Delivery location";
-        if (custName) msg += "\nCustomer: " + custName;
-        if (orderRef) msg += "\nOrder: " + orderRef;
-        msg += "\n" + maps;
-
-        const wa = "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(msg);
-        status.textContent = "Opening WhatsApp…";
-        window.location.href = wa;
+      sendLocation,
+      function () {
+        status.textContent = "Still looking… (turn on GPS if asked)";
+        navigator.geolocation.getCurrentPosition(
+          sendLocation,
+          handleFail,
+          { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+        );
       },
-      function (err) {
-        if (err.code === 1) {
-          // Permission denied — almost always the in-app browser
-          banner.style.display = "block";
-          if (!document.getElementById("bannerSteps").innerHTML) {
-            document.getElementById("bannerSteps").innerHTML =
-              "<li>Open this link in <b>Chrome</b> or <b>Safari</b> (not inside WhatsApp).</li>" +
-              "<li>Allow location when asked, then tap <b>Share my location</b>.</li>";
-          }
-          showError("Location was blocked. Please open this link in your browser (see steps above), then try again.");
-        } else if (err.code === 2) {
-          showError("Location unavailable. Turn on GPS / Location on your phone and try again.");
-        } else if (err.code === 3) {
-          showError("Timed out. Please try again.");
-        } else {
-          showError("Couldn't get your location. Please try again.");
-        }
-        btn.disabled = false;
-        btn.textContent = "Try again";
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
     );
   });
 
