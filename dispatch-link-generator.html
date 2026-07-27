@@ -80,7 +80,12 @@
   });
 
   document.getElementById("waShare").addEventListener("click", function(){
-    const msg = "Hi, please tap this link and share your location so we can deliver to you:\n" + currentLink;
+    const msg =
+      "Hi! To help us deliver to you, please share your location:\n\n" +
+      "1. Tap this link: " + currentLink + "\n" +
+      "2. Tap the menu (⋮ or ⋯) in the corner and choose *Open in browser*\n" +
+      "3. Tap *Share my location* and allow location when asked\n\n" +
+      "It only takes a few seconds — thank you!";
     window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
   });
 </script>
