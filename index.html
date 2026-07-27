@@ -167,19 +167,27 @@
   function handleFail(err) {
     if (err && err.code === 1) {
       banner.style.display = "block";
-      if (!document.getElementById("bannerSteps").innerHTML) {
-        document.getElementById("bannerSteps").innerHTML =
-          "<li>Open this link in <b>Chrome</b> or <b>Safari</b> (not inside WhatsApp).</li>" +
-          "<li>Allow location when asked, then tap <b>Share my location</b>.</li>";
+      const steps = document.getElementById("bannerSteps");
+      if (inApp) {
+        // keep the open-in-browser steps already shown
+      } else if (isIOS) {
+        steps.innerHTML =
+          "<li>Easiest: use the <b>green button below</b> to send it through WhatsApp instead.</li>" +
+          "<li>Or fix Safari: <b>Settings → Privacy &amp; Security → Location Services → Safari Websites → While Using the App</b>, then come back and try again.</li>";
+      } else {
+        steps.innerHTML =
+          "<li>Easiest: use the <b>green button below</b> to send it through WhatsApp instead.</li>" +
+          "<li>Or allow location: tap the <b>🔒 / ⓘ</b> icon next to the address bar → Permissions → Location → Allow, then try again.</li>";
       }
-      showError("Location was blocked on this phone.");
+      showError("This phone is blocking browser location — use the WhatsApp option below instead.");
     } else if (err && err.code === 2) {
-      showError("Location unavailable. Check that GPS / Location is on.");
+      showError("Location unavailable. Check that GPS / Location is on — or use the WhatsApp option below.");
     } else {
-      showError("Couldn't get your location.");
+      showError("Couldn't get your location — use the WhatsApp option below.");
     }
-    // Always offer the works-everywhere fallback
+    // Always offer the works-everywhere fallback, and scroll it into view
     fallback.style.display = "block";
+    fallback.scrollIntoView({ behavior: "smooth", block: "center" });
     btn.disabled = false;
     btn.textContent = "Try again";
   }
