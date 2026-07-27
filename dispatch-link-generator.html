@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dispatch — generate location link</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; min-height:100vh; display:flex; align-items:flex-start; justify-content:center;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#0b141a; color:#e9edef; padding:32px 20px;
+  }
+  .card { max-width:480px; width:100%; background:#111b21; border-radius:20px; padding:28px 24px; box-shadow:0 10px 40px rgba(0,0,0,.4); }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { font-size:13px; color:#8696a0; margin:0 0 22px; }
+  label { display:block; font-size:13px; color:#8696a0; margin:0 0 6px; }
+  input { width:100%; padding:13px 14px; margin:0 0 16px; border-radius:10px; border:1px solid #2a3942; background:#202c33; color:#e9edef; font-size:16px; }
+  button { width:100%; border:0; border-radius:10px; padding:14px; font-size:16px; font-weight:600; cursor:pointer; background:#25D366; color:#062b12; margin-bottom:10px; }
+  button.sec { background:#2a3942; color:#e9edef; }
+  .out { display:none; margin-top:20px; }
+  .link { word-break:break-all; background:#202c33; border-radius:10px; padding:14px; font-size:14px; color:#8fd6ff; margin-bottom:12px; }
+  .hint { font-size:12px; color:#8696a0; margin-top:6px; }
+  .warn { background:#3a2a00; color:#ffd479; border-radius:10px; padding:12px 14px; font-size:13px; margin-bottom:18px; display:none; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>📍 Generate delivery-location link</h1>
+    <p class="sub">Enter the customer and order, then send the link to them on WhatsApp.</p>
+
+    <div class="warn" id="warn">⚠️ Set your hosted page URL in this file (the <code>BASE_URL</code> line) before using.</div>
+
+    <label for="name">Customer name</label>
+    <input id="name" type="text" placeholder="e.g. John Smith">
+
+    <label for="ref">Order / reference number</label>
+    <input id="ref" type="text" placeholder="e.g. ORD-5521">
+
+    <button id="make">Generate link</button>
+
+    <div class="out" id="out">
+      <label>Ready-to-send link</label>
+      <div class="link" id="link"></div>
+      <button class="sec" id="copy">Copy link</button>
+      <button id="waShare">Open WhatsApp to send this link</button>
+      <div class="hint">The last button lets you type/pick the customer's number and sends them the link.</div>
+    </div>
+  </div>
+
+<script>
+  // ====== SET THIS ONCE ======
+  // The public URL where you hosted share-location.html
+  // e.g. "https://yourname.github.io/share-location/share-location.html"
+  const BASE_URL = "https://dashoxygen.github.io/Share-location/";
+  // ===========================
+
+  if (BASE_URL.indexOf("REPLACE_WITH") === 0) document.getElementById("warn").style.display = "block";
+
+  const make = document.getElementById("make");
+  const out = document.getElementById("out");
+  const linkBox = document.getElementById("link");
+  let currentLink = "";
+
+  make.addEventListener("click", function(){
+    const name = document.getElementById("name").value.trim();
+    const ref  = document.getElementById("ref").value.trim();
+    if (!name && !ref) { alert("Enter at least a name or an order number."); return; }
+    const q = [];
+    if (ref)  q.push("ref="  + encodeURIComponent(ref));
+    if (name) q.push("name=" + encodeURIComponent(name));
+    currentLink = BASE_URL + (q.length ? "?" + q.join("&") : "");
+    linkBox.textContent = currentLink;
+    out.style.display = "block";
+  });
+
+  document.getElementById("copy").addEventListener("click", function(){
+    navigator.clipboard.writeText(currentLink).then(()=>{ this.textContent="Copied ✓"; setTimeout(()=>this.textContent="Copy link",1500); });
+  });
+
+  document.getElementById("waShare").addEventListener("click", function(){
+    const msg = "Hi, please tap this link and share your location so we can deliver to you:\n" + currentLink;
+    window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
+  });
+</script>
+</body>
+</html>
