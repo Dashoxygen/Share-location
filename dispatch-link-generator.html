@@ -45,7 +45,9 @@
       <div class="link" id="link"></div>
       <button class="sec" id="copy">Copy link</button>
       <button id="waShare">Open WhatsApp to send this link</button>
-      <div class="hint">The last button lets you type/pick the customer's number and sends them the link.</div>
+      <div class="hint">Opens WhatsApp so you can pick the customer and send them the link.</div>
+      <button class="sec" id="waNoData" style="margin-top:14px;">Customer has no data? Send no-link request</button>
+      <div class="hint">Sends a message asking them to share location with WhatsApp's own 📎 → Location button — works on WhatsApp-only bundles where links won't open.</div>
     </div>
   </div>
 
@@ -86,6 +88,21 @@
       "2. Tap the menu (⋮ or ⋯) in the corner and choose *Open in browser*\n" +
       "3. Tap *Share my location* and allow location when asked\n\n" +
       "It only takes a few seconds — thank you!";
+    window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
+  });
+
+  document.getElementById("waNoData").addEventListener("click", function(){
+    const name = document.getElementById("name").value.trim();
+    const ref  = document.getElementById("ref").value.trim();
+    let msg = "Hi";
+    if (name) msg += " " + name;
+    msg += "! To help us deliver";
+    if (ref) msg += " your order (" + ref + ")";
+    msg += ", please share your location right here in WhatsApp:\n\n" +
+      "1. Tap the *📎 attach* (or *+*) icon below\n" +
+      "2. Tap *Location*\n" +
+      "3. Tap *Send your current location*\n\n" +
+      "That's it — thank you!";
     window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
   });
 </script>
