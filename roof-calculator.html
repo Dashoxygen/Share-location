@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roof Cost Calculator</title>
+<style>
+  :root {
+    --bg: #0b141a; --card: #111b21; --field: #202c33; --line: #2a3942;
+    --text: #e9edef; --muted: #aebac1; --faint: #8696a0;
+    --accent: #25D366; --accent-ink: #062b12; --price: #ffd479;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    display: flex; align-items: flex-start; justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); padding: 24px 16px;
+  }
+  .card {
+    max-width: 440px; width: 100%;
+    background: var(--card); border-radius: 20px; padding: 28px 22px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.4);
+  }
+  .brand { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); margin: 0 0 4px; }
+  h1 { font-size: 22px; margin: 0 0 18px; }
+  .price {
+    background: var(--field); border-radius: 14px; padding: 16px; margin: 0 0 22px; text-align: center;
+  }
+  .price .big { font-size: 34px; font-weight: 700; color: var(--price); font-variant-numeric: tabular-nums; }
+  .price .big small { font-size: 16px; font-weight: 600; color: var(--muted); }
+  .price .what { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+  .tabs { display: flex; gap: 8px; margin: 0 0 14px; }
+  .tabs button {
+    flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: transparent; color: var(--muted); font-size: 14px; cursor: pointer;
+  }
+  .tabs button[aria-pressed="true"] { background: var(--field); color: var(--text); border-color: var(--accent); }
+  label { display: block; font-size: 13px; color: var(--faint); margin: 0 0 6px; }
+  input {
+    width: 100%; padding: 13px 14px; margin: 0 0 14px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--field); color: var(--text); font-size: 16px;
+  }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; min-width: 0; }
+  .result { border-top: 1px solid var(--line); margin: 6px 0 18px; padding-top: 16px; }
+  .total { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .total .lbl { color: var(--muted); font-size: 15px; }
+  .total .val { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .calc { font-size: 13px; color: var(--faint); margin: 2px 0 12px; text-align: right; }
+  ul { list-style: none; padding: 0; margin: 0; font-size: 14px; color: var(--muted); }
+  li { display: flex; justify-content: space-between; padding: 5px 0; }
+  li b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .opt { margin-top: 6px; }
+  button.go {
+    width: 100%; border: 0; border-radius: 30px; padding: 16px; margin-top: 4px;
+    font-size: 17px; font-weight: 600; cursor: pointer; background: var(--accent); color: var(--accent-ink);
+  }
+  button.go:disabled { opacity: .5; cursor: default; }
+  .small { font-size: 12px; color: var(--faint); line-height: 1.55; margin: 16px 0 0; }
+  .hint { font-size: 13px; color: var(--faint); min-height: 18px; margin: -6px 0 10px; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <p class="brand">Apache Roof Tiles</p>
+    <h1>Roof cost calculator</h1>
+
+    <div class="price">
+      <div class="big"><span id="rate"></span> <small>per m²</small></div>
+      <div class="what">Double Roman tiles with ridge caps &amp; oxide<br>incl. 14% VAT · per m² of house-plan area</div>
+    </div>
+
+    <div class="tabs" role="group" aria-label="How to enter your roof size">
+      <button type="button" id="tabArea" aria-pressed="true">I know the m²</button>
+      <button type="button" id="tabDims" aria-pressed="false">Length × width</button>
+    </div>
+
+    <div id="areaBox">
+      <label for="area">Roof / house-plan area (m²)</label>
+      <input id="area" type="number" inputmode="decimal" min="0" step="any" placeholder="e.g. 120">
+    </div>
+    <div id="dimsBox" class="row" hidden>
+      <div>
+        <label for="len">Length (m)</label>
+        <input id="len" type="number" inputmode="decimal" min="0" step="any" placeholder="e.g. 12">
+      </div>
+      <div>
+        <label for="wid">Width (m)</label>
+        <input id="wid" type="number" inputmode="decimal" min="0" step="any" placeholder="e.g. 10">
+      </div>
+    </div>
+    <div class="hint" id="hint"></div>
+
+    <section class="result" id="result" hidden>
+      <div class="total"><span class="lbl">Your roof</span><span class="val" id="cost"></span></div>
+      <div class="calc" id="calcLine"></div>
+      <ul>
+        <li><span>Roof tiles</span><b id="tiles"></b></li>
+        <li><span>Ridge caps</span><b id="ridges"></b></li>
+        <li><span>Oxide (ridge mortar)</span><b id="oxide"></b></li>
+      </ul>
+    </section>
+
+    <div class="opt">
+      <label for="name">Your name (optional)</label>
+      <input id="name" type="text" autocomplete="name" placeholder="e.g. Kabo Molefe">
+      <label for="place">Building location (optional)</label>
+      <input id="place" type="text" placeholder="e.g. Gabane">
+    </div>
+
+    <button class="go" id="send" disabled>Send to Apache on WhatsApp</button>
+
+    <p class="small">
+      Estimate only. Not included: hip starters (counted from your roof plan), off-loading,
+      delivery &amp; diesel, timber and labour. Shingle and Tuscan profiles cost a little more.
+      Tiles are for pitched roofs (17.5° and steeper). Your formal quote is counted from your roof plan.
+    </p>
+  </main>
+
+<script>
+  // ====== SETTINGS – keep in line with whatsapp-bot/src/config.js ======
+  const WHATSAPP_NUMBER = "26774703132";  // digits only – number that receives quote requests
+  const PRICE_PER_M2 = 140;               // published price, Pula per m² incl. VAT (Double Roman)
+  const OVERHANG = 1.15, TILES_PER_M2 = 11, RIDGE_PCT = 0.06, RIDGES_PER_KG_OXIDE = 30;
+  // =====================================================================
+
+  const $ = (id) => document.getElementById(id);
+  const fmtP = (n) => "P " + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtInt = (n) => n.toLocaleString("en-US");
+  const upTo = (n, step) => Math.ceil(n / step - 1e-9) * step;
+
+  $("rate").textContent = "P" + PRICE_PER_M2;
+
+  let mode = "area";
+  let current = null;
+
+  function setMode(m) {
+    mode = m;
+    $("tabArea").setAttribute("aria-pressed", m === "area");
+    $("tabDims").setAttribute("aria-pressed", m === "dims");
+    $("areaBox").hidden = m !== "area";
+    $("dimsBox").hidden = m !== "dims";
+    update();
+  }
+  $("tabArea").onclick = () => setMode("area");
+  $("tabDims").onclick = () => setMode("dims");
+
+  function readArea() {
+    if (mode === "area") return parseFloat($("area").value);
+    const l = parseFloat($("len").value), w = parseFloat($("wid").value);
+    return l > 0 && w > 0 ? Math.round(l * w * 100) / 100 : NaN;
+  }
+
+  function update() {
+    const area = readArea();
+    const hint = $("hint");
+    current = null;
+    hint.textContent = "";
+    if (!(area > 0)) {
+      $("result").hidden = true;
+      $("send").disabled = true;
+      return;
+    }
+    if (area < 5) hint.textContent = "That looks small for a roof – please check the size.";
+    if (area > 5000) hint.textContent = "Large project – our sales team will prepare a project quote.";
+
+    const tiles = upTo(area * OVERHANG * TILES_PER_M2, 50);
+    const ridges = upTo(tiles * RIDGE_PCT, 5);
+    const oxide = Math.ceil(ridges / RIDGES_PER_KG_OXIDE - 1e-9);
+    const cost = Math.round(area * PRICE_PER_M2 * 100) / 100;
+    current = { area, tiles, ridges, oxide, cost };
+
+    $("cost").textContent = fmtP(cost);
+    $("calcLine").textContent = fmtInt(area) + " m² × P" + PRICE_PER_M2 + " per m²";
+    $("tiles").textContent = fmtInt(tiles);
+    $("ridges").textContent = fmtInt(ridges);
+    $("oxide").textContent = oxide + " kg";
+    $("result").hidden = false;
+    $("send").disabled = false;
+  }
+  ["area", "len", "wid"].forEach((id) => $(id).addEventListener("input", update));
+
+  $("send").onclick = () => {
+    if (!current) return;
+    const name = $("name").value.trim();
+    const place = $("place").value.trim();
+    let msg = "🏠 Roof quote request\n" +
+      "Roof size: " + fmtInt(current.area) + " m²\n" +
+      "Estimate: P" + PRICE_PER_M2 + " per m² = " + fmtP(current.cost) + " (Double Roman, incl. VAT)\n" +
+      "Approx. " + fmtInt(current.tiles) + " tiles, " + fmtInt(current.ridges) + " ridge caps";
+    if (name) msg += "\nName: " + name;
+    if (place) msg += "\nLocation: " + place;
+    window.location.href = "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(msg);
+  };
+</script>
+</body>
+</html>
